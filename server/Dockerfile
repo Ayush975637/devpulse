@@ -4,8 +4,12 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 COPY package*.json ./
-RUN npm install --production
+
+
+RUN npm install 
 COPY . .
-RUN npx prisma generate 
+RUN npx prisma generate
+
+RUN npm prune --production
 EXPOSE 3000
 CMD ["node", "index.js"]
