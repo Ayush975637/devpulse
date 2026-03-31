@@ -1,22 +1,30 @@
-// const { z } = require('zod')
+const { z } = require('zod')
  
-// // User schema for POST and PUT
-// const UserSchema = z.object({
-//   name: z.string().min(1, 'Name is required'),
-//   email: z.string().email('Invalid email format')
-// })
+// User schema for POST and PUT
+const userSchema = z.string()
+  .min(1,'Username is required')
+  .max(39,'Github username max 39 chars')
+  .regex(/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/,
+    'Invalid Github username format'
+
+
+  ).transform(val=>val.trim().toLowerCase());
+
+
+
+
+
+
+
+
+
+const compareSchema=z.object({
+user1:userSchema,
+user2:userSchema,
+}).refine(data=>data.user1!==data.user2,{
+    message:'Cannot compare same user'
+})
  
-// const validate = (schema) => (req, res, next) => {
-//   const result = schema.safeParse(req.body)
-//   if (!result.success) {
-//     return res.status(400).json({
-//       error: 'Validation failed',
-//       details: result.error.errors.map(e => e.message)
-//     })
-//   }
-//   req.body = result.data
-//   next()
-// }
- 
-// module.exports = { validate, UserSchema }
+
+module.exports = { compareSchema, userSchema }
  

@@ -17,7 +17,8 @@ services:
      - DATABASE_URL=${DATABASE_URL}   
      - DIRECT_URL=${DIRECT_URL}     
      - REDIS_URL=redis://redis:6379
-   
+     - GITHUB_TOKENS=${GITHUB_TOKENS}
+     - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
      - redis
 

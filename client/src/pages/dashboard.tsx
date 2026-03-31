@@ -1,110 +1,189 @@
-import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { use } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Navbar from '@/components/ui/navbar';
 import { useGithub } from '../hooks/useGithub';
+import { useParams,useNavigate } from 'react-router-dom';
+import Profilecard from '@/components/dashboard/Profilecard';
+import RepoList from '@/components/dashboard/RepoList';
+import StatsRow from '@/components/dashboard/StatsRow';
+import { Button } from '@/components/ui/button';
+import ActivityChart from '@/components/dashboard/ActivityChart';
+import DevScore from '@/components/dashboard/DevScore';
+import Language from '@/components/dashboard/Language';
+import RoastCard from '@/components/dashboard/RoastCard';
+import { FaArrowLeft } from "react-icons/fa";
+import { Spinner } from '@/components/ui/spinner';
+import DevScoreSkeleton from '@/components/skeletons/DevScoreSkeleton';
+import LanguageSkeleton from '@/components/skeletons/LanguagaeSkeleton';
+import StatsSkeleton from '@/components/skeletons/StatsSkeleton';
+import RepoSkeleton from '@/components/skeletons/RepoSkeleton';
+import ProfileSkeleton from '@/components/skeletons/ProfileSkeleton';
+import Heatmap from '@/components/dashboard/HeatMap';
 
-export default function Dashboard() {
-  const { username } = useParams<{ username: string }>();
-  const navigate = useNavigate();
-  const { data, loading, error, fetchProfile } = useGithub();
 
-  useEffect(() => {
-    if (username) fetchProfile(username);
-  }, [username]);
 
-  if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20vh' }}>
-      <p>Loading {username}...</p>
-    </div>
-  );
 
-  if (error) return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20vh' }}>
-      <p style={{ color: 'red' }}>{error}</p>
-    </div>
-  );
+const Dashboard = () => {
 
-  if (!data) return null;
+const { username } = useParams();
+const navigate = useNavigate();
 
-  const { profile, stats } = data;
+const {data,loading,error}=useGithub(username);
+
+
+
+ 
+
+if(error) return <div className='text-center mt-20 text-red-500'>Error: {error}</div>
+
+
+// if(!data) return <div className='text-center mt-20 text-gray-500'>No data found for user: {username}</div>
+
+
 
   return (
-    <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 20px', fontFamily: 'sans-serif' }}>
 
-      {/* header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <img src={profile?.avatar_url} width={80} style={{ borderRadius: '50%' }} />
-        <div>
-          <h2 style={{ margin: 0 }}>{profile?.name || profile?.username}</h2>
-          <p style={{ margin: '4px 0', color: '#666' }}>@{profile?.username}</p>
-          <p style={{ margin: '4px 0' }}>{profile?.bio}</p>
+<div className="min-h-screen bg-background">
+  <Navbar />
+
+  {/* Header */}
+  <div className="flex items-center gap-4 px-4 py-4 max-w-7xl mx-auto">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => navigate(-1)}
+    >
+      <FaArrowLeft />
+    </Button>
+
+    <h1 className="text-xl font-semibold">@{username}</h1>
+  </div>
+
+  {/* Main Container */}
+  <div className="max-w-7xl mx-auto px-4 space-y-6">
+
+    {/* Top Section */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      {/* Profile */}
+    
+      <section className="bg-card rounded-xl p-6 shadow-sm">
+  <h2 className="font-semibold mb-4">Profile</h2>
+
+  {loading ? (
+    <ProfileSkeleton />
+  ) : (
+    <Profilecard profile={data?.profile} />
+  )}
+</section>
+
+      {/* DevScore */}
+
+  <section className="bg-card rounded-xl p-6 shadow-sm">
+  <h2 className="font-semibold mb-4">DevScore</h2>
+
+  {loading ? (
+    <DevScoreSkeleton/>
+  ) : (
+     <DevScore devScore={data?.stats?.devScore} />
+  )}
+</section>
+
+
+</div>
+
+
+
+
+    {/* Stats Row */}
+
+
+    <section className="bg-card rounded-xl p-6 shadow-sm">
+  <h2 className="font-semibold mb-4">Stats</h2>
+
+  {loading ? (
+   <DevScoreSkeleton/>
+  ) : (
+     <StatsRow stats={data?.stats} />
+  )}
+</section>
+
+    {/* Middle Section */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      {/* Languages */}
+     
+
+
+      <section className="bg-card rounded-xl p-6 shadow-sm">
+  <h2 className="font-semibold mb-4">Languages</h2>
+
+  {loading ? (
+     <DevScoreSkeleton/>
+  ) : (
+         <Language language={data?.stats?.topLanguages} />
+  )}
+</section>
+
+      {/* Activity */}
+
+
+
+      <section className="bg-card rounded-xl p-1  shadow-sm">
+  <h2 className="font-semibold mb-4">Activity</h2>
+
+  {loading ? (
+     <DevScoreSkeleton/>
+  ) : (
+    <div className='flex items-baseline'>
+        <ActivityChart weeklyCommits={data?.stats?.weeklyCommits}  />
         </div>
-      </div>
+  )}
+</section>
+<section className="bg-card rounded-xl p-6 shadow-sm hidden md:block">
+  <h2 className="font-semibold mb-4">HeatMap</h2>
 
-      {/* stat cards */}
-      <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-        {[
-          { label: 'Repos',      value: stats?.totalRepos },
-          { label: 'Stars',      value: stats?.totalStars?.toLocaleString() },
-          { label: 'Followers',  value: profile?.followers?.toLocaleString() },
-          { label: 'Most active',value: stats?.mostActiveDay },
-        ].map(card => (
-          <div key={card.label} style={{
-            flex: 1, padding: '16px', border: '1px solid #eee',
-            borderRadius: '8px', textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{card.value}</div>
-            <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{card.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* top languages */}
-      <div style={{ marginTop: '32px' }}>
-        <h3>Top languages</h3>
-        {stats?.topLanguages.map((l:any) => (
-          <div key={l.lang} style={{
-            display: 'flex', justifyContent: 'space-between',
-            padding: '8px 0', borderBottom: '1px solid #f0f0f0'
-          }}>
-            <span>{l.lang}</span>
-            <span style={{ color: '#666' }}>{l.count} repos</span>
-          </div>
-        ))}
-      </div>
-
-      {/* top repos */}
-      <div style={{ marginTop: '32px' }}>
-        <h3>Repositories</h3>
-        {data?.repos?.slice(0, 6).map((repo:any) => (
-          <div key={repo.github_id} style={{
-            padding: '12px', marginBottom: '8px',
-            border: '1px solid #eee', borderRadius: '8px'
-          }}>
-            <div style={{ fontWeight: 'bold' }}>{repo.name}</div>
-            <div style={{ fontSize: '13px', color: '#666', margin: '4px 0' }}>
-              {repo.description}
-            </div>
-            <div style={{ fontSize: '13px', display: 'flex', gap: '16px' }}>
-              <span>{repo.language}</span>
-              <span>⭐ {repo.stars.toLocaleString()}</span>
-              <span>🍴 {repo.forks.toLocaleString()}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button
-        onClick={() => navigate('/')}
-        style={{ marginTop: '32px', padding: '10px 20px', cursor: 'pointer' }}
-      >
-        Search another
-      </button>
-
+  {loading ? (
+    <DevScoreSkeleton/>
+  ) : (
+        <Heatmap datax={data?.stats?.heatmapData} />
+  )}
+</section>
     </div>
-  );
+
+
+
+    {/* Repos */}
+
+
+
+     <section className="bg-card rounded-xl p-6 shadow-sm">
+  <h2 className="font-semibold mb-4"> Top Repositories</h2>
+
+  {loading ? (
+    <DevScoreSkeleton/>
+  ) : (
+        <RepoList repos={data?.repos} />
+  )}
+</section>
+
+    {/* Roast */}
+
+<div className='hidden'>
+   <section className={`bg-card rounded-xl p-6 shadow-sm  ${loading ? 'animate-pulse bg-gray-500 ' : ''} `} >
+      <h2 className="font-semibold mb-4">AI Insight</h2>
+      {/* <RoastCard /> */}
+      <RoastCard username={username} />
+    </section> 
+</div>
+  </div>
+</div>
+
+
+  )
 }
 
-
+export default Dashboard
 
 
 

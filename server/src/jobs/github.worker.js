@@ -1,54 +1,124 @@
 // server/src/jobs/github.worker.js
 const { githubQueue } = require('./queue');
-const { getUserProfile, getUserRepos, getCommitActivity } = require('../services/github.service');
-const { computeStats } = require('../services/stats.service');
+const { getUserProfileFresh, getUserReposFresh, getCommitActivityFresh } = require('../services/github.service');
+const { computeStats2 } = require('../services/stats2.service');
 const prisma = require('../lib/pool');
+const cache = require('../services/cache.service')
 
+
+
+
+const TTL = 60 * 60 * 12; // 6 hours
 githubQueue.process(async (job) => {
   const { username } = job.data;
   console.log(`[worker] processing: ${username}`);
 
-  const [profile, repos, commitActivity] = await Promise.all([
-    getUserProfile(username),
-    getUserRepos(username),
-    getCommitActivity(username),
-  ]);
+  
+const profile = await getUserProfileFresh(username)
 
-  const stats = computeStats(repos, commitActivity);
+const repos = await getUserReposFresh(username)
+const commitActivity=await getCommitActivityFresh(username)
 
-  const user = await prisma.user.upsert({
-    where:  { username: profile.username },
+
+// stats new file without caching withou db fallback 
+  const stats =await computeStats2(repos,profile, commitActivity);
+
+
+  const fullData={
+    ...stats,
+    commitActivity
+  }
+
+console.log("cache save by bull mq")
+await cache.set(`stats:${username}`, fullData, TTL);
+await cache.set(`profile:${username}`, profile, TTL);
+await cache.set(`repos:${username}`, repos, TTL);
+
+
+console.log("update in db bybullmq")
+// user update 
+const user = await prisma.user.upsert({
+    where: { username: profile.username },
     update: {
-      name:      profile.name,
+      name: profile.name,
       avatarUrl: profile.avatar_url,
-      bio:       profile.bio,
+      bio: profile.bio,
+      followers: profile.followers,
+      following: profile.following,
+      publicRepos: profile.public_repos
     },
     create: {
-      githubId:  profile.github_id,
-      username:  profile.username,
-      name:      profile.name,
+      githubId: profile.github_id,
+      username: profile.username,
+      name: profile.name,
       avatarUrl: profile.avatar_url,
-      bio:       profile.bio,
+      bio: profile.bio,
+      followers: profile.followers,
+      following: profile.following,
+      publicRepos: profile.public_repos
     }
   });
+// repo update 
 
-  await prisma.$executeRaw`
-    INSERT INTO snapshots (user_id, snapshot_date, total_stars, top_languages, commits_by_day)
-    VALUES (
-      ${user.id},
-      CURRENT_DATE,
-      ${stats.totalStars},
-      ${JSON.stringify(stats.topLanguages)}::jsonb,
-      ${JSON.stringify(stats.commitsByDay)}::jsonb
-    )
-    ON CONFLICT (user_id, snapshot_date) DO UPDATE SET
-      total_stars    = EXCLUDED.total_stars,
-      top_languages  = EXCLUDED.top_languages,
-      commits_by_day = EXCLUDED.commits_by_day
-  `;
 
-  console.log(`[worker] done: ${username} — ${stats.totalStars} stars`);
-  return { username, totalStars: stats.totalStars };
+    await prisma.repository.createMany({
+      data: repos.map(r => ({
+        userId: user.id,
+        githubId: r.github_id,
+        name: r.name,
+        language: r.language,
+        stars: r.stars,
+        forks: r.forks,
+        updatedAt: r.updatedAt,
+        description: r.description,
+        homepage: r.homepage,
+        repoUrl: r.repo_url
+      })),
+      skipDuplicates: true
+    });
+
+
+const {
+
+heatmapData,
+devScore,
+...stats2
+
+}=stats
+
+
+// stats update 
+await prisma.stats.upsert({
+where:{userId:user.id},
+update:{
+  devScore:devScore.overall,
+  stats:{
+    ...stats2,
+    devScore
+  }
+},
+create:{
+  userId:user.id,
+  devScore:devScore.overall,
+  stats:{
+    ...stats2,
+    devScore
+  }
+}
+
+
+})
+
+
+
+
+
+  
+
+  
+ 
+  console.log(`[worker] done: ${username}`);
+  return { username};
 });
 
 githubQueue.on('completed', (job, result) => {

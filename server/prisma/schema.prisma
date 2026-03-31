@@ -1,12 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql"
-   url       = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -18,6 +18,10 @@ model User {
   avatarUrl    String?      @map("avatar_url")
   bio          String?
   createdAt    DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  followers    Int          @default(0)
+  following    Int          @default(0)
+  publicRepos  Int          @default(0) @map("public_repos")
+  stats        Stats?
   repositories Repository[]
   snapshots    Snapshot[]
 
@@ -41,17 +45,34 @@ model Snapshot {
 }
 
 model Repository {
-  id        Int       @id @default(autoincrement())
-  userId    Int?      @map("user_id")
-  githubId  Int       @map("github_id")
-  name      String    @db.VarChar(200)
-  language  String?   @db.VarChar(100)
-  stars     Int?      @default(0)
-  forks     Int?      @default(0)
-  updatedAt DateTime? @map("updated_at") @db.Timestamp(6)
-  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id          Int       @id @default(autoincrement())
+  userId      Int?      @map("user_id")
+  githubId    Int       @map("github_id")
+  name        String    @db.VarChar(200)
+  language    String?   @db.VarChar(100)
+  stars       Int?      @default(0)
+  forks       Int?      @default(0)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp(6)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  description String?
+  homepage    String?   @map("homepage")
+  repoUrl     String    @map("repo_url")
 
   @@unique([userId, githubId])
   @@index([userId], map: "idx_repos_user_id")
   @@map("repositories")
+}
+
+model Stats {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique @map("user_id")
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  devScore Int
+  stats    Json
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("stats")
 }
