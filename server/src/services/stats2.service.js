@@ -13,7 +13,7 @@ function computeDevScore(stats) {
   const repoScore = safe(Math.min(Math.round((stats.totalRepos / 100) * 100), 100));
 
   const activeWeeks = weekly.filter(w => (w || 0) > 0).length;
-const totalWeeks = weekly.length || 52;
+  const totalWeeks = weekly.length || 52;
 
 
 const consistency = safe(Math.min(Math.round((activeWeeks / totalWeeks) * 100), 100))

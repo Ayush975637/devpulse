@@ -1,5 +1,6 @@
 import React from 'react'
-import html2canvas from 'html2canvas'
+// import html2canvas from 'html2canvas'
+import {toPng}  from 'html-to-image';
 import { Button } from '../ui/button'
 import { useState } from 'react'
 const CardActions = ({username, cardRef}) => {
@@ -13,15 +14,16 @@ setDownloading(true);
 
 await document.fonts.ready;
 
-const canvas=await html2canvas(cardRef.current,{
-    backgroundColor:null,
-    scale:2,
-    useCORS:true,
+const dataUrl=await toPng(cardRef.current,{
+    backgroundColor:'transparent',
+ pixelRatio:3,
+ cacheBust:true
+    
 })
 
 const link=document.createElement("a");
 link.download=`${username}_card.png`;
-link.href=canvas.toDataURL();
+link.href=dataUrl;
 link.click();
 
 setDownloading(false);

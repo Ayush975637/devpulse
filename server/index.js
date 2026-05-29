@@ -20,17 +20,14 @@ app.use(cors({
 
 app.use(express.json())
 app.get('/',(req, res) => {
-  res.send('Welcome to the API')
+  res.send('Welcome to the API ayush singh  55556')
 })
 app.use('/api', apiLimiter);
 
 
 app.use('/api/github', githubRoutes);
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', time: new Date().toISOString() })
-})
-
+app.get('/api/health', (req, res) => res.json({ ok: true }))
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' })

@@ -1,179 +1,4 @@
 
-
-// import React, { useEffect,useState } from 'react'
-// import Navbar from '@/components/ui/navbar'
-// import { useLeaderBoard } from '@/hooks/useLeaderboard'
-// import {
-//   Pagination,
-//   PaginationContent,
-  
-//   PaginationItem,
-//   PaginationLink,
-//   PaginationNext,
-//   PaginationPrevious,
-// } from "@/components/ui/pagination"
-
-// import { Spinner } from '@/components/ui/spinner'
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-
-
-// const LeaderBoard = () => {
-// const [page,setPage]=useState(1);
-
-// const {data,loading,error}=useLeaderBoard(page);
-
-// console.log(data);
-
-// if (loading)
-//   return (
-//     <div className="flex items-center justify-center min-h-screen">
-//       <Spinner className='text-3xl w-20px h-20px' />
-//     </div>
-//   );
-
-// if (error)
-//   return (
-//     <div className="flex items-center justify-center min-h-screen text-red-500">
-//       Error: {error}
-//     </div>
-//   );
-
-// const No1=data?.top3?.slice(0,1);
-// const No2=data?.top3?.slice(1,2);
-// const No3=data?.top3?.slice(2,3);
-
-
-
-
-
-//   return (
-//     <div>
-//       <Navbar></Navbar>
-
-// {/* top 3 */}
-// <section>
-
-// <div>
-//  <p>{2}</p>
-//      <Avatar className="w-15 h-15">
-//         <AvatarImage src={No2?.user?.avatar_url} />
-//         <AvatarFallback>{No2?.user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-//       </Avatar>
-  
-   
-//     <p>{No2?.user?.name||No2?.user?.username}</p>
-// </div>
-// <div>
-//   <p>{2}</p>
-//      <Avatar className="w-15 h-15">
-//         <AvatarImage src={No2?.user?.avatar_url} />
-//         <AvatarFallback>{No2?.user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-//       </Avatar>
-  
-   
-//     <p>{No2?.user?.name||No2?.user?.username}</p>
-// </div>
-// <div>
-//   <p>{2}</p>
-//      <Avatar className="w-15 h-15">
-//         <AvatarImage src={No2?.user?.avatar_url} />
-//         <AvatarFallback>{No2?.user?.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-//       </Avatar>
-  
-   
-//     <p>{No2?.user?.name||No2?.user?.username}</p>
-// </div>
-
-
-
-
-
-
-// </section>
-
-
-
-
-
-
-// {/* main leadboard 10  */}
-// <section>
-// {data?.data?.map((u,idx) =>(
-
-// <div key={idx} className='flex items-center justify-around mb-5 mx-auto gap-5 border-2 rounded-lg p-3 '>
-//       <p>{u?.rank}</p>
-//      <Avatar className="w-15 h-15">
-//         <AvatarImage src={u?.avatar} />
-//         <AvatarFallback>{u.username?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-//       </Avatar>
-  
-   
-//     <p>{u?.name||u?.username}</p>
-//     <p>{u?.score}</p>
-//     <p>{u?.label}</p>
-    
-
-// </div>
-
-
-
-
-// ))}
-
-// </section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// <Pagination>
-//   <PaginationContent>
-//     <PaginationItem>
-//       <PaginationPrevious onClick={()=>setPage(prev=>prev<2?prev:prev-1)} />
-//     </PaginationItem>
-
-//  <PaginationItem>
-//       <PaginationLink>{page}</PaginationLink>
-//     </PaginationItem>
-
-
-
-
-//     <PaginationItem>
-//       <PaginationNext onClick={()=>setPage(p=>p>=data?.totalPages ?p:p+1)} />
-//     </PaginationItem>
-
-
-//   </PaginationContent>
-// </Pagination>
-
-
-
-
-
-
-//     </div>
-//   )
-// }
-
-// export default LeaderBoard
 import React, { useState } from "react";
 import Navbar from "@/components/ui/navbar";
 import { useLeaderBoard } from "@/hooks/useLeaderboard";
@@ -231,7 +56,7 @@ const LeaderBoard = () => {
   const top3 = data?.top3 || [];
 
   return (
-    <div className="bg-black min-h-screen text-white">
+    <div className=" min-h-screen ">
       <Navbar />
 
       {/* 🔥 TOP 3 PODIUM */}
@@ -286,7 +111,7 @@ const LeaderBoard = () => {
             <a href={`/profile/${u?.username}`}>
             <div
               key={u.rank}
-              className="flex items-center justify-between bg-gray-900 rounded-xl p-4 mb-4 hover:bg-gray-800 transition"
+              className="flex items-center justify-between border-2  rounded-xl p-4 mb-4 hover:bg-gray-800 transition"
             >
               {/* LEFT */}
               <div className="flex items-center gap-4">

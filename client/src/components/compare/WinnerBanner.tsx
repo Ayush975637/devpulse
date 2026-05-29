@@ -2,6 +2,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FaTrophy } from "react-icons/fa";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const WinnerBanner = ({ user1, user2 }) => {
   if (!user1 || !user2) return null;
@@ -54,11 +55,17 @@ const WinnerBanner = ({ user1, user2 }) => {
 
           {/* User 1 */}
           <div className="flex flex-col items-center">
-            <img
+            {/* <img
               src={user1?.profile?.avatar_url}
               alt="u1"
               className="w-14 h-14 rounded-full border"
-            />
+            /> */}
+             <Avatar className="w-20 h-20 border-2 border-white">
+                            <AvatarImage src={user1?.profile?.avatar_url} />
+                            <AvatarFallback>
+                              {user1?.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
             <p className="text-sm mt-1">@{user1?.profile?.username}</p>
 
             {score1 > score2 && (
@@ -79,11 +86,17 @@ const WinnerBanner = ({ user1, user2 }) => {
 
           {/* User 2 */}
           <div className="flex flex-col items-center">
-            <img
+            {/* <img
               src={user2?.profile?.avatar_url}
               alt="u2"
               className="w-14 h-14 rounded-full border"
-            />
+            /> */}
+            <Avatar className="w-20 h-20 border-2 border-white">
+                            <AvatarImage src={user2?.profile?.avatar_url} />
+                            <AvatarFallback>
+                              {user2?.username?.[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
             <p className="text-sm mt-1">@{user2?.profile?.username}</p>
 
             {score2 > score1 && (

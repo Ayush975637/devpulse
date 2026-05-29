@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+      - "24678:24678"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - devnet
+
+  backend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    command: sh -c "apk add --no-cache openssl && npm install && npx prisma generate && npx prisma db push && npx nodemon --legacy-watch index.js"
+    ports:
+      - "5000:3000"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgresql://devuser:devpass@postgres:5432/devdb?schema=public
+      - DIRECT_URL=postgresql://devuser:devpass@postgres:5432/devdb?schema=public
+      - REDIS_URL=redis://redis:6379
+      - GITHUB_TOKENS=${GITHUB_TOKENS}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    networks:
+      - devnet
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=devpass
+      - POSTGRES_DB=devdb
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d devdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - devnet
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - devnet
+
+networks:
+  devnet:
+    driver: bridge
+
+volumes:
+  pgdata_dev:

@@ -12,7 +12,7 @@ const Navbar = () => {
         <nav className='flex items-center justify-between p-4'>
 
 <Button variant="ghost" className='text-xl font-bold flex items-center cursor-pointer hover:bg-yellow-500 hover:text-white transition-colors duration-300'>
-    <a className='flex flex-row items-center '>
+    <a className='flex flex-row items-center' href={'/'}>
     <FaCodeBranch size={20} className='mr-2' />
     CodeVex
     </a>

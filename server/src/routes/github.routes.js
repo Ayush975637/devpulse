@@ -8,15 +8,13 @@ const prisma = require('../lib/pool');
 const { GoogleGenAI } =require("@google/genai");
 const router = express.Router();
 const dotenv = require("dotenv");
-// const { GoogleGenerativeAI } = require("@google/generative-ai");
+
 const {userSchema,compareSchema}=require('../middleware/validate')
 dotenv.config();
 const { profileLimiter, roastLimiter } = require('../middleware/rateLimiter');
 const { parse } = require('path');
 
 const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
-
-// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 
 
@@ -371,8 +369,8 @@ console.log("bullmq end")
     res.json({ profile, repos, stats });
 
   } catch (err) {
-    if (err.response?.status === 404) return res.status(404).json({ error: 'User not found' });
-    if (err.response?.status === 403) return res.status(429).json({ error: 'Rate limit hit' });
+    if (err.response?.status === 404) return res.status(404).json({ error: 'User not found ❌' });
+    if (err.response?.status === 403) return res.status(429).json({ error: 'Rate limit hit .Please try again later! ❌' });
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }

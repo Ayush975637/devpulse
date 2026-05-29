@@ -10,8 +10,12 @@ services:
 
   backend:
     build: ./server
+   
     ports:
      - "5000:3000"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1 
     environment:
      - PORT=3000
      - DATABASE_URL=${DATABASE_URL}   

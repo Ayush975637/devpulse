@@ -16,10 +16,15 @@ export function useGithub(username) {
 
       try {
         const res = await fetch(`/api/github/profile/${username}`);
-        const json = await res.json();
+const json = await res.json();
+        
+if (!res.ok) {
+          throw new Error(json.error || 'Failed to fetch profile');
+        }
+        
         setData(json);
       } catch (e) {
-        setError('Failed to fetch');
+        setError(e.message);
       } finally {
         setLoading(false);
       }

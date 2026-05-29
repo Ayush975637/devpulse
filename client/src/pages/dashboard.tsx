@@ -32,12 +32,14 @@ const {data,loading,error}=useGithub(username);
 
 
 
- 
+if(error) return (
 
-if(error) return <div className='text-center mt-20 text-red-500'>Error: {error}</div>
+<div>
+  <Navbar />
+<div className='text-center mt-20 text-red-500 font-bold text-lg md:text-2xl'>Error: {error}</div>
+</div>
+);
 
-
-// if(!data) return <div className='text-center mt-20 text-gray-500'>No data found for user: {username}</div>
 
 
 
@@ -52,6 +54,8 @@ if(error) return <div className='text-center mt-20 text-red-500'>Error: {error}<
       variant="ghost"
       size="icon"
       onClick={() => navigate(-1)}
+      className='cursor-pointer'
+
     >
       <FaArrowLeft />
     </Button>

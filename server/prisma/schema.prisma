@@ -73,6 +73,6 @@ model Stats {
 
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([userId])
+  @@index([devScore(sort:Desc)])
   @@map("stats")
 }

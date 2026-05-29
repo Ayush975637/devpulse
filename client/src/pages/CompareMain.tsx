@@ -21,17 +21,21 @@ console.log("params",user1,user2)
 const { data: data1, loading: loading1, error: error1 } = useGithub(user1);
 const { data: data2, loading: loading2, error: error2 } = useGithub(user2);
 
-// if (loading1 || loading2)
-//   return (
-//     <div>
-//              <Navbar />
-//       <div className="flex items-center justify-center min-h-screen">
-        
-//         <Spinner className="w-10 h-10" />
-//       </div>
-//       </div>
-//   );
-if (loading1 || loading2 || !data1 || !data2) return (
+if (error1 || error2)
+  return (
+<div>
+    <Navbar />
+    <div className="flex items-center justify-center mt-10  text-red-500 font-bold text-lg md:text-2xl">
+
+      Error: {error1 ? `${user1}: ${error1}` : ``} ,{error2 ? `${user2}: ${error2}` : ``}
+    </div>
+    </div>
+  );
+
+
+
+
+if (loading1 || loading2 ) return (
   <div>
     <Navbar />
     <div className="flex items-center justify-center min-h-screen">
@@ -40,15 +44,6 @@ if (loading1 || loading2 || !data1 || !data2) return (
   </div>
 )
 
-if (error1 || error2)
-  return (
-    <div className="flex items-center justify-center min-h-screen text-red-500">
-      Error: {error1 || error2}
-    </div>
-  );
-// if(isLoading) return <div>Loading...</div>
-
-// if(error) return <div className='text-center mt-20 text-red-500'>Error: {error}</div>
 
 
 

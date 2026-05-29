@@ -6,6 +6,7 @@ import { FaCodeBranch, FaLeaf, FaRocket, FaSeedling, FaFire, FaCrown } from "rea
 import { Spinner } from '@/components/ui/spinner'
 import { useCard } from '@/hooks/useCard'
 import CardActions from '@/components/cards/CardActions'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const badgeConfig = {
   Elite:        { color: '#facc15', icon: <FaCrown /> },
@@ -84,9 +85,11 @@ const CardPage = () => {
         )}
       </div>
 
+
       {cardGenerated && data && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px' }}>
 
+<CardActions username={username} cardRef={cardRef} />
           <div
             ref={cardRef}
             style={{
@@ -95,11 +98,13 @@ const CardPage = () => {
               borderRadius: '16px',
               padding: '20px 22px',
               width: '360px',
+              overflow: 'hidden',
               minWidth: '360px',
               maxWidth: '360px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
               display: 'flex',
               flexDirection: 'column',
+              marginTop:'10px',
               fontFamily: 'sans-serif',
               boxSizing: 'border-box'
             }}
@@ -107,11 +112,18 @@ const CardPage = () => {
 
             {/* TOP */}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+
               <img
                 src={avatar}
                 crossOrigin="anonymous"
-                style={{ width: '52px', height: '52px', borderRadius: '50%', border: '2px solid #3f3f46', marginRight: '12px' }}
+                style={{ width: '80px', height: '80px', borderRadius: '9999px', border: '2px solid white',objectFit:'cover' }}
               />
+               {/* <Avatar className="w-20 h-20 border-2 border-white">
+                                          <AvatarImage src={avatar} />
+                                          <AvatarFallback>
+                                            {username[0].toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar> */}
 
               <div style={{ flex: 1 }}>
                 <p style={{ margin: 0, fontSize: '15px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -210,7 +222,7 @@ const CardPage = () => {
 
           </div>
 
-          <CardActions username={username} cardRef={cardRef} />
+          
 
         </div>
       )}
