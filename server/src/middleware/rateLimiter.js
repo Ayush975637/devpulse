@@ -10,6 +10,8 @@ message:{
 },
 standardHeaders:true,
 legacyHeaders:false,
+keyGenerator:(req)=>req.headers['cf-connectingip']||req.ip
+
 
 
 
@@ -21,6 +23,7 @@ const profileLimiter=rateLimit({
 windowMs: 60 * 1000,        // 1 minute
   max: 10,                    // 10 profile lookups per minute per IP
   message: { error: 'Too many profile requests, slow down' },
+keyGenerator:(req)=>req.headers['cf-connectingip']||req.ip
 
 })
 
@@ -28,6 +31,8 @@ const roastLimiter = rateLimit({
   windowMs: 60 * 1000,        // 1 minute  
   max: 3,                     // 3 roasts per minute per IP
   message: { error: 'Too many roast requests, wait a moment' },
+  keyGenerator:(req)=>req.headers['cf-connectingip']||req.ip
+
 });
 
 module.exports={apiLimiter,profileLimiter,roastLimiter};

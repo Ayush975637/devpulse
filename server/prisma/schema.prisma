@@ -24,6 +24,8 @@ model User {
   stats        Stats?
   repositories Repository[]
   snapshots    Snapshot[]
+  lastViewedAt  DateTime? 
+  lastSyncedAt  DateTime? 
 
   @@index([username], map: "idx_users_username")
   @@map("users")
@@ -31,13 +33,40 @@ model User {
 
 model Snapshot {
   id           Int       @id @default(autoincrement())
-  userId       Int?      @map("user_id")
+  userId       Int     @map("user_id")
   snapshotDate DateTime  @map("snapshot_date") @db.Date
-  totalStars   Int?      @default(0) @map("total_stars")
-  topLanguages Json?     @map("top_languages")
-  commitsByDay Json?     @map("commits_by_day")
-  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  totalStars   Int      @default(0) @map("total_stars")
+  totalRepos   Int       @default(0)
+  totalForks   Int        @default(0)
+  totalWatches Int       @default(0)
+  followers     Int      @default(0)
+  totalCommits  Int      @default(0)
+  totalContributionsYear Int   @default(0)
+  currentStreakDays Int       @default(0)
+  longestStreakDays  Int      @default(0)
+  activeDaysCount   Int      @default(0)
+
+   overallScore              Float   @default(0)
+  percentile                Float    @default(0)
+
+  
+  activeWeeks               Int    @default(0)
+   consistencyScore          Float    @default(0) 
+  activityScore             Float    @default(0)
+ impactScore               Float    @default(0)
+  diversityScore           Float    @default(0)
+  repositoryScore          Float    @default(0)
+  reachScore               Float     @default(0)
+
+   
+
+
+
+  
+
+  
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, snapshotDate])
   @@index([userId, snapshotDate(sort: Desc)], map: "idx_snapshots_user_date")
@@ -52,6 +81,7 @@ model Repository {
   language    String?   @db.VarChar(100)
   stars       Int?      @default(0)
   forks       Int?      @default(0)
+  watchers    Int?      @default(0)
   updatedAt   DateTime? @map("updated_at") @db.Timestamp(6)
   user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   description String?

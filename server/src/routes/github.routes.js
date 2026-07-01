@@ -18,8 +18,6 @@ const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
 
 
-
-
 router.get('/leaderboard/:page',async(req,res)=>{
 
   
@@ -103,11 +101,6 @@ data:users?.map((u,index)=>({
 
 
 
-
-
-
-
-
 }
 catch(err){
 
@@ -117,24 +110,7 @@ res.status(500).json({error:'Leaderboard failed'});
 
 
 
-
-
-
-
-
-
 })
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -214,15 +190,6 @@ async function fetchFullProfile(username){
 
 
 
-
-
-
-
-
-
-
-
-
 // ai roast  route 
 router.get('/roast/:username',roastLimiter, async (req, res) => {
   try {
@@ -282,24 +249,6 @@ const roast = response.text;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // profile route
 router.get('/profile/:username',profileLimiter, async (req, res) => {
   try {
@@ -312,47 +261,17 @@ if(!result.success){
   })
 }
 const username=result.data;
-
-    // const [profile, repos,commitActivity] = await Promise.all([
-    //   getUserProfile(username),
-    //   getUserRepos(username),
-    //   getContributions(username)
-     
-    // ]);
-const profile = await getUserProfile(username)
 const savedUser = await prisma.user.findUnique({ where: { username } })
 
-const repos = await getUserRepos(username,savedUser?.id)
-const commitActivity=await getContributions(username)
+    const [profile, repos,commitActivity] = await Promise.all([
+      getUserProfile(username),
+     getUserRepos(username,savedUser?.id),
+      getContributions(username)
+     
+    ]);
 
-
-    // const {weeklyCommits,totalCommits} = await getCommitActivity(username);
-
-    
 const stats =await computeStats(repos,profile,commitActivity);
 
-
-
-
-
-
-
-
-
-
-
-    // await prisma.$executeRaw`
-    //   INSERT INTO snapshots (user_id, snapshot_date, total_stars, top_languages, commits_by_day)
-    //   VALUES (
-    //     ${user.id}, CURRENT_DATE, ${stats.totalStars},
-    //     ${JSON.stringify(stats.topLanguages)}::jsonb,
-    //     ${JSON.stringify(stats.commitsByDay)}::jsonb
-    //   )
-    //   ON CONFLICT (user_id, snapshot_date) DO UPDATE SET
-    //     total_stars    = EXCLUDED.total_stars,
-    //     top_languages  = EXCLUDED.top_languages,
-    //     commits_by_day = EXCLUDED.commits_by_day
-    // `;
 
 
 console.log("bullmq start");
@@ -404,37 +323,58 @@ console.log("bullmq end")
 
 // anyltics route
 router.get('/analytics/:username', async (req, res) => {
+ console.log("Analytics route hit");
+
+
+
   try {
-   const result=userSchema.safeParse(req.params)
 
-if(!result.success){
-  return res.status(400).json({
-    error:result.error.errors[0].message
+const username=req.params.username;
+console.log(username);
+
+
+    const user = await prisma.user.findUnique({
+       where: { username:username }
+       });
+
+
+if(!user){
+console.log("bullmq start");
+await githubQueue.add(
+  { username },
+  {
+    jobId: `refresh:${username}`,
+    removeOnComplete:true,
+    removeOnFail:true
+  }
+);
+console.log("bullmq end")
+ 
+
+return res.status(404).json({ error: 'User not found ❌. Refresh job queued, please try again in a few minutes.' });
+
+
+
+
+
+}else{
+ const growth =await prisma.snapshot.findMany({
+    where:{userId:user?.id},
+orderBy: { snapshotDate: 'asc' },
+take:100
+
+
+
   })
+
+  
+
+
+ return res.json({ growth });
+
+
 }
-const username=result.data;
 
-    const user = await prisma.user.findUnique({ where: { username } });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const growth = await prisma.$queryRaw`
-      SELECT
-        snapshot_date,
-        total_stars,
-        total_stars - LAG(total_stars)
-          OVER (ORDER BY snapshot_date) AS weekly_growth,
-        ROUND(
-          100.0 * (total_stars - LAG(total_stars) OVER (ORDER BY snapshot_date))
-          / NULLIF(LAG(total_stars) OVER (ORDER BY snapshot_date), 0),
-          2
-        ) AS growth_percent
-      FROM snapshots
-      WHERE user_id = ${user.id}
-      ORDER BY snapshot_date DESC
-      LIMIT 30
-    `;
-
-    res.json({ growth });
 
   } catch (err) {
     console.error(err);

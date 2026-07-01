@@ -1,20 +1,12 @@
-// services/claudeService.js
-// npm install @anthropic-ai/sdk
 
 import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY, // store in .env, never hardcode
+  apiKey: process.env.ANTHROPIC_API_KEY, 
 });
 
 const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 1024;
-
-// ─────────────────────────────────────────────
-// 1. AUTO-TAG  →  Suggest tags + detect language
-// ─────────────────────────────────────────────
-// Use: When user saves a snippet without filling tags manually
-// Returns: { language: string, tags: string[] }
 
 export async function autoTagSnippet(code) {
   const message = await client.messages.create({
@@ -51,11 +43,7 @@ ${code}
   return JSON.parse(clean);
 }
 
-// ─────────────────────────────────────────────
-// 2. EXPLAIN  →  Plain English explanation
-// ─────────────────────────────────────────────
-// Use: "Explain this snippet" button on snippet detail page
-// Returns: string (markdown supported)
+
 
 export async function explainSnippet(code, language) {
   const message = await client.messages.create({
@@ -84,11 +72,7 @@ ${code}
   return message.content[0].text.trim();
 }
 
-// ─────────────────────────────────────────────
-// 3. IMPROVE  →  Suggest code improvements
-// ─────────────────────────────────────────────
-// Use: "Improve this snippet" button
-// Returns: { improvedCode: string, changes: string[] }
+
 
 export async function improveSnippet(code, language) {
   const message = await client.messages.create({
@@ -127,11 +111,7 @@ ${code}
   return JSON.parse(clean);
 }
 
-// ─────────────────────────────────────────────
-// 4. GENERATE DOCS  →  Auto-write documentation
-// ─────────────────────────────────────────────
-// Use: "Generate Docs" button — adds JSDoc / docstring to snippet
-// Returns: string (the code with docs added at top)
+
 
 export async function generateDocs(code, language) {
   const docStyle = {

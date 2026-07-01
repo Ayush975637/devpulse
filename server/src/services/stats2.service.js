@@ -1,43 +1,113 @@
-
-const prisma = require('../lib/pool');
-const cache = require('./cache.service');
 require('dotenv').config();
-const TTL = 60 * 60 * 12; // 6 hours
 
+const safe = (val) => (isNaN(val) || val === undefined || val === null ? 0 : val);
 
 function computeDevScore(stats) {
+  const {
+    totalWatches = 0,
+    totalStars = 0,
+    totalForks = 0,
+    totalRepos = 0,
+    topLanguages = [],
+    weeklyCommits = [],
+    currentStreakDays = 0,
+    longestStreakDays = 0,
+    lastMonthCommits = 0,
+    totalContributionsYear = 0,
+    followers = 0,
+  } = stats;
 
-  const safe = (val) => (isNaN(val) ? 0 : val);
+  const weekly = weeklyCommits || [];
 
-  const weekly = stats.weeklyCommits || [];
-  const repoScore = safe(Math.min(Math.round((stats.totalRepos / 100) * 100), 100));
+  // --- repoScore ---
+  const repoScore = safe(
+    Math.min(
+      100,
+      Math.round(
+        Math.log10(totalWatches + 1) * 15 +
+          Math.log10(totalStars + 1) * 35 +
+          Math.log10(totalForks + 1) * 30 +
+          Math.log10(topLanguages.length + 1) * 10 +
+          Math.log10(totalRepos + 1) * 10,
+      ),
+    ),
+  );
 
-  const activeWeeks = weekly.filter(w => (w || 0) > 0).length;
-  const totalWeeks = weekly.length || 52;
+  // --- consistency ---
+  const activeWeeks = weekly.filter((w) => (w || 0) > 0).length;
 
+  const consistency = safe(
+    Math.min(
+      100,
+      Math.round(
+        (activeWeeks / Math.max(weekly.length || 52, 1)) * 70 +
+          Math.min(Math.log10(currentStreakDays + 1) * 15, 15) +
+          Math.min(Math.log10(lastMonthCommits + 1) * 15, 15),
+      ),
+    ),
+  );
 
-const consistency = safe(Math.min(Math.round((activeWeeks / totalWeeks) * 100), 100))
-  const impact = safe(Math.min(
-    Math.round(Math.log10((stats.totalStars || 0) + 1) * 40),
-    100
-  ));
+  // --- impact ---
+  const impact = safe(
+    Math.min(
+      100,
+      Math.round(
+        Math.log10(totalForks + 1) * 60 +
+          Math.log10(totalWatches + 1) * 20 +
+          Math.log10(totalStars + 1) * 20,
+      ),
+    ),
+  );
 
-  const diversity = safe(Math.min((stats.topLanguages?.length || 0) * 14, 100));
+  // --- diversity (language entropy) ---
+  // topLanguages entries are { lang, count } objects
+  const total = topLanguages.reduce((s, l) => s + (l.count || 0), 0);
 
-  const recentCommits = weekly
-    .slice(-4)
-    .reduce((a, b) => a + b , 0);
+  let diversity = 0;
+  if (total > 0) {
+    diversity = topLanguages.reduce((score, lang) => {
+      const p = lang.count / total;
+      if (p <= 0) return score;
+      return score - p * Math.log2(p);
+    }, 0);
 
-  const activity = safe(Math.min(Math.round((recentCommits / 20) * 100), 100));
-  const followers = stats.followers || 0;
-  const reach = safe(Math.min(Math.round(Math.log10(followers + 1) * 20), 100));
+    const maxEntropy = Math.log2(topLanguages.length || 1);
+    diversity = maxEntropy ? Math.round((diversity / maxEntropy) * 100) : 0;
+  }
+  diversity = safe(diversity);
+
+  // --- activity ---
+  const activity = safe(
+    Math.min(
+      100,
+      Math.round(
+        Math.log10(totalContributionsYear + 1) * 25 +
+          Math.log10(currentStreakDays + 1) * 35 +
+          Math.log10(longestStreakDays + 1) * 30 +
+          ((activeWeeks + 1) / 52) * 10,
+      ),
+    ),
+  );
+
+  // --- reach ---
+  const reach = safe(
+    Math.min(
+      100,
+      Math.round(
+        Math.log10(followers + 1) * 40 +
+          Math.log10(totalStars + 1) * 40 +
+          Math.log10(totalForks + 1) * 20,
+      ),
+    ),
+  );
+
   const overall = Math.round(
-    consistency * 0.20 * 10 +
-    impact      * 0.25 * 10 +
-    diversity   * 0.10 * 10 +
-    activity    * 0.15 * 10+
-    repoScore   * 0.10 * 10+
-    reach       *0.20  *10
+    consistency * 0.2 * 10 +
+      impact * 0.25 * 10 +
+      diversity * 0.1 * 10 +
+      activity * 0.15 * 10 +
+      repoScore * 0.1 * 10 +
+      reach * 0.2 * 10,
   );
 
   let label = 'Beginner';
@@ -57,189 +127,122 @@ const consistency = safe(Math.min(Math.round((activeWeeks / totalWeeks) * 100), 
     label,
     percentile,
     activeWeeks,
-
-    breakdown: { consistency, impact, diversity, activity,repoScore,reach }
+    breakdown: { consistency, impact, diversity, activity, repoScore, reach },
   };
 }
 
+async function computeStats2(repos, profile, commitActivity) {
+  console.log('stats fetching for bullmq service');
 
+  const langMap = {};
 
+  repos.forEach((r) => {
+    if (r.language) langMap[r.language] = (langMap[r.language] || 0) + 1;
+  });
 
+  const topLanguages = Object.entries(langMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([lang, count]) => ({ lang, count }));
 
+  const totalStars = repos.reduce((sum, r) => sum + r.stars, 0);
+  const totalForks = repos.reduce((sum, repo) => sum + repo.forks, 0);
+  const totalWatches = repos.reduce((sum, r) => sum + (r?.watchers || 0), 0);
 
+  const weeks =
+    commitActivity?.data?.user?.contributionsCollection?.contributionCalendar
+      ?.weeks || [];
+  const allDays = weeks.flatMap((w) => w.contributionDays || []);
 
+  const confidence = weeks.length ? 100 : 60;
 
-
-
-
-
- async function computeStats2(repos,profile,commitActivity){
-
-  
-
-
-
-console.log("sats fetching for  bullmq service ")
-
-
-
-
-
-
-
-
-
-    const langMap={}
-    
-    repos.forEach(r=>{
-        if(r.language) langMap[r.language]=(langMap[r.language] || 0) + 1;
-
-    })
-
-
-
-    const topLanguages=Object.entries(langMap).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([lang,count])=>({lang,count}));
-
-    const totalStars=repos.reduce((sum,r)=>sum+r.stars,0);
-let totalForks = repos.reduce((sum, repo) => {
-  return sum + repo.forks;
-}, 0);
-
-// const safeWeekly = Array.isArray(weeklyCommits) ? weeklyCommits : [];
-
-
-// const weeks=commitActivity?.weeks||[];
-const weeks =
-  commitActivity?.data?.user?.contributionsCollection?.contributionCalendar?.weeks || [];
-const allDays=weeks.flatMap(w=>w.contributionDays||[])
-
-
-
-const confidence = weeks.length ? 100 : 60;
-
-  // const commitsByDay = Array(7).fill(0);
-  // const mostActiveDay = 'N/A';
-
-    const commitsByDay = Array(7).fill(0);
-allDays.forEach(day=>{
-  const d=new Date(day.date);
-  commitsByDay[d.getDay()]+=day.contributionCount
-})
-
-
-
-    // safeActivity.forEach(week=>{
-    //     week?.days?.forEach((count,day)=>{
-    //         commitsByDay[day]+=count||0;
-    //     })
-    // })
+  const commitsByDay = Array(7).fill(0);
+  allDays.forEach((day) => {
+    const d = new Date(day.date);
+    commitsByDay[d.getDay()] += day.contributionCount;
+  });
 
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const mostActiveDay=days[commitsByDay.indexOf(Math.max(...commitsByDay))];
+  const mostActiveDay = days[commitsByDay.indexOf(Math.max(...commitsByDay))];
 
+  // weekly total from heatmap
+  const heatmapWeekly = weeks.map((w) =>
+    (w.contributionDays || []).reduce((sum, d) => sum + d.contributionCount, 0),
+  );
 
-
-// weekly total from heatmap
-const heatmapWeekly=weeks.map(w=>
-(
-  w.contributionDays||[]
-).reduce((sum,d)=>sum+d.contributionCount,0)
-)
-
-// streak calculation 
-
-
- let streak = 0
-  let longest = 0
-  let current = 0
+  // --- streak calculation ---
+  let streak = 0;
+  let longest = 0;
+  let current = 0;
   for (const day of [...allDays].reverse()) {
     if (day.contributionCount > 0) {
-      current++
-      longest = Math.max(longest, current)
+      current++;
+      longest = Math.max(longest, current);
     } else {
-      if (streak === 0) streak = current  // current streak ends at first zero
-      current = 0
+      if (streak === 0) streak = current; // current streak ends at first zero
+      current = 0;
     }
   }
-  const currentStreakDays = streak || current
-  const longestStreakDays = longest
+  const currentStreakDays = streak || current;
+  const longestStreakDays = longest;
 
+  // --- most active month ---
+  const monthMap = {};
+  allDays.forEach((day) => {
+    const month = day.date.slice(0, 7);
+    monthMap[month] = (monthMap[month] || 0) + day.contributionCount;
+  });
+  const mostActiveMonth =
+    Object.entries(monthMap).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
-  // most active months
-  const monthMap={}
-  allDays.forEach(day=>{
-    const month=day.date.slice(0,7);
-    monthMap[month]=(monthMap[month]||0)+day.contributionCount
-  })
-  // most active month
-const mostActiveMonth=Object.entries(monthMap).sort((a,b)=>b[1]-a[1])[0]?.[0]||'N/A'
-// totalyear contributions
-const totalContributionsYear=allDays.reduce((sum,d)=>sum+d.contributionCount,0)
+  // --- total year contributions ---
+  const totalContributionsYear = allDays.reduce(
+    (sum, d) => sum + d.contributionCount,
+    0,
+  );
 
-const activeDaysCount=allDays.filter(d=>d.contributionCount>0).length
+  // --- last month activity (active days in the last ~4 full weeks) ---
+  // NOTE: this counts ACTIVE DAYS, not raw commit counts.
+  let activeDaysLastMonth = 0;
+  const recentWeeks = weeks.slice(-4);
+  recentWeeks.forEach((week) => {
+    (week.contributionDays || []).forEach((day) => {
+      if (day.contributionCount > 0) activeDaysLastMonth++;
+    });
+  });
+  const lastMonthCommits = activeDaysLastMonth;
 
+  const activeDaysCount = allDays.filter((d) => d.contributionCount > 0).length;
 
-
-
-  const stats = { 
-    
+  const stats = {
     topLanguages,
-     totalStars, 
-        weeklyCommits: heatmapWeekly ,
-         mostActiveDay,
-         
-         totalRepos: repos.length,
-        commitsByDay,
-         followers:profile?.followers||0,
-          totalCommits: totalContributionsYear || 0,
-          totalForks,
-          
-          
-          mostActiveMonth,
-          currentStreakDays,
-          longestStreakDays,
-          totalContributionsYear,
-          activeDaysCount,
-          heatmapData:allDays,
-          confidence
+    totalStars,
+    weeklyCommits: heatmapWeekly,
+    mostActiveDay,
+    totalWatches,
+    totalRepos: repos.length,
+    commitsByDay,
+    followers: profile?.followers || 0,
+    totalCommits: totalContributionsYear || 0,
+    totalForks,
+    lastMonthCommits,
+    mostActiveMonth,
+    currentStreakDays,
+    longestStreakDays,
+    totalContributionsYear,
+    activeDaysCount,
+    heatmapData: allDays,
+    confidence,
+  };
 
-        
-        
-        };
- const devScore=computeDevScore(stats);
-        
+  const devScore = computeDevScore(stats);
 
-
-
-
-
-
- 
-
-const fullData={
-  ...stats,
-  
-  devScore
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  const fullData = {
+    ...stats,
+    devScore,
+  };
 
   return fullData;
-
 }
+
 module.exports = { computeStats2 };
