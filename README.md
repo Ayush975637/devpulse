@@ -2,7 +2,7 @@
 
 **CodeVex** is a full-stack developer analytics platform that transforms GitHub profiles into meaningful insights, rankings, and shareable developer cards.
 
-Built with a scalable architecture using background jobs, caching, and cloud deployment — designed to handle real-world API constraints like rate limiting and heavy data processing.
+Built with a scalable architecture using background jobs, scheduled cron workers, caching, and cloud deployment — designed to handle real-world API constraints like rate limiting and heavy data processing.
 
 ---
 
@@ -19,6 +19,7 @@ Built with a scalable architecture using background jobs, caching, and cloud dep
   * Diversity (languages)
   * Reach (followers)
 * Contribution heatmaps & streak tracking
+* **Daily automated analytics refresh** for every tracked user via a Bull cron job — no manual re-fetch needed
 
 ---
 
@@ -47,7 +48,7 @@ Built with a scalable architecture using background jobs, caching, and cloud dep
 ### 🎴 Shareable Developer Cards
 
 * Generate clean, shareable profile cards
-* Export using `html2canvas`
+* Export using `html2image`
 * Perfect for social sharing
 
 ---
@@ -55,7 +56,8 @@ Built with a scalable architecture using background jobs, caching, and cloud dep
 ### ⚡ Performance & Scalability
 
 * Redis caching (multi-layer caching)
-* Background job processing using BullMQ
+* Background job processing using Bull
+* **Daily cron-scheduled jobs** (Bull repeatable jobs) to refresh every user's GitHub analytics automatically
 * API rate-limit handling using **token rotation**
 * Optimized DB queries with Prisma
 
@@ -65,9 +67,23 @@ Built with a scalable architecture using background jobs, caching, and cloud dep
 
 ### 🔁 Request Flow
 
+```
 User Request → Cache → Database → Compute → Cache → Response
-⬇
-Background Worker (BullMQ) → Refresh Data → Update DB + Cache
+                                        ⬇
+                     Background Worker (Bull) → Refresh Data → Update DB + Cache
+```
+
+### ⏰ Daily Cron Refresh Flow
+
+```
+BullMQ Repeatable Job (runs daily) → Iterate All Tracked Users
+        ⬇
+Fetch Latest GitHub Data (token-rotated requests)
+        ⬇
+Recompute DevScore + Stats → Update DB → Refresh Cache
+```
+
+This keeps every user's analytics up to date automatically, without waiting for them to visit the app or trigger a manual refresh.
 
 ---
 
@@ -76,7 +92,7 @@ Background Worker (BullMQ) → Refresh Data → Update DB + Cache
 * Node.js + Express
 * Prisma ORM + PostgreSQL (Neon)
 * Redis (Caching + Queue)
-* BullMQ (Background Jobs)
+* Bull(Background Jobs + **Daily Cron Scheduling**)
 * Rate Limiting (Express Middleware)
 * GitHub GraphQL + REST APIs
 
@@ -111,14 +127,24 @@ Background Worker (BullMQ) → Refresh Data → Update DB + Cache
 
 ---
 
-### 2. ⚡ Background Data Refresh
+### 2. ⏰ Daily Cron Job for Analytics Refresh
 
-* BullMQ workers refresh user data asynchronously
+* Bull **repeatable job** scheduled to run once a day
+* Loops through every tracked user and re-fetches their latest GitHub data
+* Recomputes DevScore, streaks, and stats automatically in the background
+* Distributes requests across rotated tokens to stay within rate limits
+* Ensures leaderboard and profile data stay fresh without requiring the user to visit the app
+
+---
+
+### 3. ⚡ Background Data Refresh
+
+* Bull workers refresh user data asynchronously (on-demand and via the daily cron job)
 * Keeps API fast while maintaining fresh data
 
 ---
 
-### 3. 🧠 Smart Caching Strategy
+### 4. 🧠 Smart Caching Strategy
 
 * Redis used for:
 
@@ -129,7 +155,7 @@ Background Worker (BullMQ) → Refresh Data → Update DB + Cache
 
 ---
 
-### 4. 📉 Optimized Data Storage
+### 5. 📉 Optimized Data Storage
 
 * Heavy GitHub data (heatmaps, raw activity) **NOT stored**
 * Only lightweight computed stats saved in DB
@@ -137,7 +163,7 @@ Background Worker (BullMQ) → Refresh Data → Update DB + Cache
 
 ---
 
-### 5. 🏆 Custom DevScore Algorithm
+### 6. 🏆 Custom DevScore Algorithm
 
 * Weighted scoring system:
 
@@ -197,6 +223,8 @@ Run:
 npm run dev
 ```
 
+This also starts the BullMQ worker process, which registers the daily repeatable job for refreshing user analytics.
+
 ---
 
 ### 3. Setup Frontend
@@ -218,7 +246,7 @@ npm run dev
 * Prisma
 * PostgreSQL (Neon)
 * Redis
-* BullMQ
+* Bull (background jobs + daily cron scheduling)
 
 ### Frontend
 
@@ -238,17 +266,15 @@ npm run dev
 
 ## 📈 Future Improvements
 
-* 🔍 Search users globally
+
 * 🌍 Country-based leaderboards
-* 📊 Historical trend graphs
 * 🤝 Friends leaderboard
-* 📱 Mobile optimization
 
 ---
 
 ## 👨‍💻 Author
 
-Built by **Aether**
+Built by **Ayush**
 Passionate about building scalable systems & developer tools.
 
 ---
@@ -256,3 +282,6 @@ Passionate about building scalable systems & developer tools.
 ## ⭐ Show some love
 
 If you like this project, give it a ⭐ on GitHub!
+
+
+
